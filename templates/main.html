@@ -1,0 +1,170 @@
+{% extends 'project_base.html' %}
+
+{% block sub_js_section %}
+{% endblock %}
+
+{% block page_title %}Web & U{% endblock %}
+
+{% block content %}
+    <div class="all-content" style="width: 60%; margin: auto; position: absolute;  top: 25px; left: 0; bottom: auto; right: 0;">
+        <div class="progress" id="progress" style="width: 100%; height: 450px">
+
+            <div class="progress-bar progress-bar-info" role="progressbar" style="width: 0; height: 100%; position: relative; z-index:10;"></div>
+
+            <div id="file_upload_panel" style="width:100% ;text-align: center; z-index: 80; position: absolute">
+                <input id="file_upload" type="file" name="uploaded_file" data-url="" style="margin: auto; top: 0; left: 0; bottom: 0; right: 0;" multiple/>
+                <br />
+                <span class="glyphicon glyphicon-file" style="font-size: xx-large"></span>
+                <span style="font-size: x-large">Please Drag Your File Here.</span>
+            </div>
+            <br />
+            <div id="modify_file_panel" style="width:100% ;display: none; text-align: center; z-index: 30; position: absolute;">
+                <h2 style="font-size: x-large; color: #FFFFFF;" id="uploaded_file_name"></h2>
+                <h2 style="font-size: large; color: #FFFFFF;">Please Take This Code:</h2>
+                <h1 id="static_file_code"></h1>
+                <div id="status_info_txt_box" class="alert alert-warning" style="display: none;">
+                    <a href="#" id="status_info_txt" class="alert-link"></a>
+                </div>
+                <div style="width: 85%; margin-left:auto; margin-right:auto;">
+                    <form class="form-group" id="modify_file_info" method="post" action="">
+                        <div style="width: 67%; float: left;">
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-addon">File Code</span>
+                                <input type="text" class="form-control" id="file_code" name="file_code" placeholder="A~Z or 1~9 Only" />
+                            </div>
+                            <div class="input-group input-group-sm"style="padding-top: 5px;">
+                                <span class="input-group-addon">Password</span>
+                                <input type="password" class="form-control" id="file_password" name="file_password" placeholder="Password is Optional"/>
+                            </div>
+                        </div>
+                        <div style="width: 30%; float: right; padding-top: 2px;">
+                            <button id="modify_info_button" type="submit" style="padding: 25px 40px" class="btn btn-lg btn-block">Modify File Info.</button>
+                        </div>
+                    </form>
+                </div>
+                <div >
+                    <button id="upload_again_button" type="button" class="btn btn-default">Add Another File</button>
+                </div>
+            </div>
+            <div id="progress_text_notification" style="position: absolute; text-align: center; width: 100%; height: 100%; display: none; z-index: 99;">
+                <h1 class="progress-text"></h1>
+            </div>
+
+        </div>
+
+        <br />
+        <div id="get_files_panel" class="panel panel-info" style="width:90%; margin-left:auto;margin-right:auto;">
+            <div class="panel-heading">
+                <span id="panel_heading_txt">Enter Your Code to Download File</span>
+            </div>
+            <div class="panel-body">
+                <div class="col-lg-6" style="width: 100%;">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="get_file_by_code" />
+                        <span class="input-group-btn">
+                            <button id="get_file_button" class="btn btn-default" type="button">Download Now</button>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+    </div>
+    <script src="/static/js/vendor/jquery.ui.widget.js"></script>
+    <script src="/static/js/jquery.iframe-transport.js"></script>
+    <script src="/static/js/jquery.fileupload.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#file_upload').fileupload({
+                dataType: 'json',
+                limitMultiFileUploads: 1,
+                send: function (e, data) {
+                    $('#status_info_txt_box').fadeOut('fast');
+                    $("#file_upload_panel").fadeOut("fast");
+                    $("#modify_file_panel").fadeOut("fast");
+                    $("#progress_text_notification").fadeIn("fast");
+                },
+                done: function (e, data) {
+                    $("#modify_file_panel").fadeIn("fast");
+                    $("#progress_text_notification").fadeOut("fast");
+                    $("#static_file_code").text(data.result.code);
+                    $("#file_code").val(data.result.code);
+                    $("#uploaded_file_name").text("File Name: "+data.result.name);
+                    $.each(data.result.files, function () {
+                    });
+                },
+                progressall: function (e, data) {
+                    var progress = parseInt(data.loaded / data.total * 100, 10);
+                    $('.progress-bar').css('width', progress + '%');
+                    $('.progress-text').text(progress + '%');
+                }
+            });
+
+            $('#upload_again_button').click(function(){
+                $('.progress-bar').css('width', '0%');
+                $("#modify_file_panel").fadeOut("fast");
+                $("#progress_text_notification").fadeOut("fast");
+                $("#file_upload_panel").fadeIn("fast");
+                $("#static_file_code").text("");
+                $("#file_code").val("");
+
+            });
+
+             $('#get_file_button').click(function(){
+                 $.ajax(
+                    {
+                        url: '/',
+                        type: "POST",
+                        data: { 'old_file_code' : $("#get_file_by_code").val() },
+                        success: function (data, textStatus, jqXHR) {
+                            if (data['is_success']) {
+                                $('#get_files_panel').attr('class', 'panel panel-success');
+                                $('#panel_heading_txt').text('Already get the file.');
+                                document.location.href = $("#get_file_by_code").val();
+
+                            } else {
+                                $('#get_files_panel').attr('class', 'panel panel-warning');
+                                $('#panel_heading_txt').text(data['fail_reason']);
+                            }
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            $('#get_files_panel').attr('class', 'panel panel-danger');
+                            $('#panel_heading_txt').text('Failed for unknown reasons.');
+                        }
+                    });
+                });
+
+            $("#modify_info_button").click(function (event) {
+                event.preventDefault();
+                var formData = $('#modify_file_info').serialize();
+                var url = $('#modify_file_info').attr("action");
+                $('#status_info_txt_box').fadeIn('fast');
+                $('#status_info_txt_box').attr('class', 'alert alert-warning');
+                $("#status_info_txt").text('Modifying file info., please wait... ');
+                $.ajax(
+                    {
+                        url: url,
+                        type: "POST",
+                        data: formData,
+                        success: function (data, textStatus, jqXHR) {
+                            if (data['is_success']) {
+                                $('#status_info_txt_box').attr('class', 'alert alert-success');
+                                $("#status_info_txt").text('File information successfully updated.');
+                                $("#static_file_code").text(data['code']);
+                            } else {
+                                $('#status_info_txt_box').attr('class', 'alert alert-warning');
+                                $('#status_info_txt').text(data['fail_reason']);
+                            }
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            $('#status_info_txt_box').attr('class', 'alert alert-danger');
+                            $('#status_info_txt').text("Failed for unknown reasons.");
+                        }
+                    });
+                });
+        });
+</script>
+
+{% endblock %}
